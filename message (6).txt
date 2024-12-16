@@ -1,0 +1,260 @@
+import javax.swing.*;
+import java.awt.*;
+import java.awt.event.*;
+import java.io.BufferedReader;
+import java.io.FileReader;
+import java.io.IOException;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.List;
+import java.util.concurrent.atomic.AtomicInteger;
+
+class ThreadQuiz implements Runnable {
+    private final Object lock = new Object();
+    private String name;
+    private JFrame quiz;
+    private String Q1, Q2, Q3, Q4, Q5;
+    private int correct1, correct2, correct3, correct4, correct5;
+    private JTextField answer1, answer2, answer3, answer4, answer5;
+    private JLabel scoreLabel;
+    private AtomicInteger score = new AtomicInteger(0);
+
+    public void setQ1(String q1) {
+        Q1 = q1;
+    }
+    public void setScore(int value) {
+        this.score.set(value);
+    }
+    public int getScore() {
+        return score.get();
+    }
+    public void setQ2(String q2) {
+        Q2 = q2;
+    }
+    public void setQ3(String q3) {
+        Q3 = q3;
+    }
+    public void setQ4(String q4) {
+        Q4 = q4;
+    }
+    public void setQ5(String q5) {
+        Q5 = q5;
+    }
+    public void setCorrect1(int correct1) {
+        this.correct1 = correct1;
+    }
+    public void setCorrect2(int correct2) {
+        this.correct2 = correct2;
+    }
+    public void setCorrect3(int correct3) {
+        this.correct3 = correct3;
+    }
+    public void setCorrect4(int correct4) {
+        this.correct4 = correct4;
+    }
+    public void setCorrect5(int correct5) {
+        this.correct5 = correct5;
+    }
+    public void setName(String name) {
+        this.name = name;
+    }
+    public ThreadQuiz(JTextField answer1, JTextField answer2, JTextField answer3, JTextField answer4, JTextField answer5) {
+        this.answer1 = answer1;
+        this.answer2 = answer2;
+        this.answer3 = answer3;
+        this.answer4 = answer4;
+        this.answer5 = answer5;
+    }
+
+    public ThreadQuiz(String title) {
+        setName(title);
+        Thread thread = new Thread(this);
+        thread.start();
+    }
+
+    @Override
+    public void run() {
+        synchronized (lock) {
+            setRandamQuestion();
+        }
+        createGUI(name);
+        
+        synchronized (lock) {
+            check(answer1, correct1, Q1, name);
+        }
+        synchronized (lock) {
+            check(answer2, correct2, Q2, name);
+        }
+        synchronized (lock) {
+            check(answer3, correct3, Q3, name);
+        }
+        synchronized (lock) {
+            check(answer4, correct4, Q4, name);
+        }
+        synchronized (lock) {
+            check(answer5, correct5, Q5, name);
+        }
+
+        scoreLabel.setText("The score is " + score + " from 5");
+    }
+
+    public void setRandamQuestion() {
+        List<String> questions = readQuestion();
+        List<String> answers = readAnswer();
+
+        List<Integer> numbers = new ArrayList<>();
+        for (int i = 0; i < questions.size(); i++) {
+            numbers.add(i);
+        }
+
+        Collections.shuffle(numbers);
+        setQ1(questions.get(numbers.get(0)));
+        setQ2(questions.get(numbers.get(1)));
+        setQ3(questions.get(numbers.get(2)));
+        setQ4(questions.get(numbers.get(3)));
+        setQ5(questions.get(numbers.get(4)));
+        setCorrect1(Integer.parseInt(answers.get(numbers.get(0))));
+        setCorrect2(Integer.parseInt(answers.get(numbers.get(1))));
+        setCorrect3(Integer.parseInt(answers.get(numbers.get(2))));
+        setCorrect4(Integer.parseInt(answers.get(numbers.get(3))));
+        setCorrect5(Integer.parseInt(answers.get(numbers.get(4))));
+        try {
+            Thread.sleep(2000);
+        } catch (Exception e) {
+            Thread.currentThread().interrupt();
+        }
+    }
+
+    public List<String> readQuestion() {
+        List<String> questions = new ArrayList<>();
+
+        try (BufferedReader br = new BufferedReader(new FileReader("C:\\Users\\Abdalrhman\\Desktop\\projectquiz\\src\\Question.txt"))) {
+            String line;
+            while ((line = br.readLine()) != null) {
+                String[] parts = line.split(";");
+                if (parts.length == 2) {
+                    questions.add(parts[0]);
+                }
+            }
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+        return questions;
+    }
+
+    public List<String> readAnswer() {
+        List<String> answers = new ArrayList<>();
+        try (BufferedReader br = new BufferedReader(new FileReader("C:\\Users\\Abdalrhman\\Desktop\\projectquiz\\src\\Question.txt"))) {
+            String line;
+            while ((line = br.readLine()) != null) {
+                String[] parts = line.split(";");
+                if (parts.length == 2) {
+                    answers.add(parts[1]);
+                }
+            }
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+        return answers;
+    }
+
+    public void createGUI(String title) {
+        quiz = new JFrame("Welcome " + title);
+        quiz.setDefaultCloseOperation(JFrame.DISPOSE_ON_CLOSE);
+        quiz.setSize(320, 200);
+        quiz.setLayout(new FlowLayout());
+
+        JLabel q1 = new JLabel(Q1);
+        answer1 = new JTextField(10);
+
+        JLabel q2 = new JLabel(Q2);
+        answer2 = new JTextField(10);
+
+        JLabel q3 = new JLabel(Q3);
+        answer3 = new JTextField(10);
+
+        JLabel q4 = new JLabel(Q4);
+        answer4 = new JTextField(10);
+
+        JLabel q5 = new JLabel(Q5);
+        answer5 = new JTextField(10);
+
+        JButton button = new JButton("Finish");
+        button.addActionListener(new ActionListener() {
+            public void actionPerformed(ActionEvent e) {
+                synchronized (lock) {
+                    lock.notify();
+                }
+            }
+        });
+        scoreLabel = new JLabel("");
+
+        quiz.getContentPane().add(q1);
+        quiz.getContentPane().add(answer1);
+        quiz.getContentPane().add(q2);
+        quiz.getContentPane().add(answer2);
+        quiz.getContentPane().add(q3);
+        quiz.getContentPane().add(answer3);
+        quiz.getContentPane().add(q4);
+        quiz.getContentPane().add(answer4);
+        quiz.getContentPane().add(q5);
+        quiz.getContentPane().add(answer5);
+        quiz.getContentPane().add(button);
+        quiz.getContentPane().add(scoreLabel);
+        quiz.setVisible(true);
+
+        synchronized (lock) {
+            
+                try {
+                    lock.wait();
+                } catch (InterruptedException e) {
+                    e.printStackTrace();
+                }
+            }
+    }
+    
+
+    public void check(JTextField answer, int correct, String question, String name) {
+        if (answer.getText().isEmpty()) {
+            JOptionPane.showMessageDialog(null, "Error, you did not answer this question " + question, "Error", JOptionPane.ERROR_MESSAGE);
+            return;
+        }
+
+        try {
+            Thread.sleep(500);
+        } catch (Exception e) {
+            Thread.currentThread().interrupt();
+        }
+
+        if (Integer.parseInt(answer.getText()) == correct) {
+            System.out.println("The answer is correct for " + question + " for " + name );
+            setScore(getScore() + 1);
+        } else {
+            System.out.println("The answer is not correct for " + question + " for " + name);
+        }
+    }
+}
+
+public class finalquiz {
+    public static void main(String[] args) {
+        JFrame login = new JFrame("Login");
+        login.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
+        login.setSize(350, 200);
+        login.setLayout(new FlowLayout());
+
+        JLabel x = new JLabel("Please enter your name");
+        JTextField nameLogin = new JTextField(10);
+
+        JButton button = new JButton("Go to quiz");
+        button.addActionListener(new ActionListener() {
+            public void actionPerformed(ActionEvent e) {
+                new ThreadQuiz(nameLogin.getText());
+                nameLogin.setText("");
+            }
+        });
+        login.getContentPane().add(x);
+        login.getContentPane().add(nameLogin);
+        login.getContentPane().add(button);
+        login.setVisible(true);
+    }
+}
